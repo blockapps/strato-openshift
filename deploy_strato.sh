@@ -71,9 +71,7 @@ do
 
  if [ "$image" = "spotify/kafka:latest" ]; then
    image_name="kafka"
-   echo $image_name
  fi
-
   sudo docker tag $image ${ocr_ip}/${PROJECT_NAME}/blockapps-strato-$image_name:latest
 done
 

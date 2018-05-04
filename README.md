@@ -30,10 +30,14 @@ When running on custom domain name (not using `nip.io`) - add the `*.<subdomain>
  ```
  ./deploy_strato_minishift.sh
  ```
+ 
+Minishift dev user credentials: `developer/developer`
 
 ## Dashboard
 Visit the nginx hostname in your browser to open STRATO Dashboard (in Openshift Console select `STRATO` project, then Applications > Routes).
 
 Credentials to access the Dashboard:
+
 Openshift cluster: `admin/<password_you_set_on_deployment>`
-Minishift local: `admin/admin`
+
+Minishift local (won't show your projects): `admin/admin` 

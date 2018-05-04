@@ -3,6 +3,7 @@
 STRATO_VERSION=3.0.0-SMDv0.4
 
 set -e
+set -x
 
 # SET PERMISSIONS FOR 'developer' USER
 oc login -u system:admin
@@ -35,15 +36,15 @@ oc adm policy add-role-to-user cluster-admin ${username}
 
 #GET IMAGES
 docker login -u blockapps-repo -p P@ssw0rd registry-aws.blockapps.net:5000
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/smd:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/apex:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/dappstore:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/bloc:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/cirrus:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/strato:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/postgrest:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/nginx:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/docs:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/smd:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/apex:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/dappstore:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/bloc:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/cirrus:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/strato:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/postgrest:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/nginx:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/docs:${STRATO_VERSION}
 docker pull redis:3.2
 docker pull postgres:9.6
 docker pull spotify/kafka:latest
@@ -68,9 +69,7 @@ do
 
  if [ "$image" = "spotify/kafka:latest" ]; then
    image_name="kafka"
-   echo $image_name
  fi
-
   docker tag $image ${ocr_ip}/${PROJECT_NAME}/blockapps-strato-$image_name:latest
 done
 
