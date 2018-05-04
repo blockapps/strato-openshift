@@ -151,7 +151,7 @@ items:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - apex
+        - dappstore
         from:
           kind: ImageStreamTag
           name: blockapps-strato-dappstore:latest
