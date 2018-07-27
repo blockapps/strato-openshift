@@ -1,3 +1,4 @@
+# STRATO v3.1.2
 apiVersion: v1
 items:
 ##### DEPLOYMENTS #####
@@ -32,6 +33,7 @@ items:
             value: node-__project_name__.__hostname__
           - name: SINGLE_NODE
             value: "true"
+#          - name: SMD_MODE
 #          - name: ssl
           - name: STRATO_DOC_URL
             value: http://node-__project_name__.__hostname__/docs/?url=/strato-api/eth/v1.2/swagger.json
@@ -87,11 +89,16 @@ items:
             value: node-__project_name__.__hostname__
           - name: postgres_host
             value: postgres
+          - name: postgres_password
+            value: api
           - name: postgres_port
             value: "5432"
+          - name: postgres_user
+            value: postgres
 #          - name: PROD_DEV_MODE
           - name: SINGLE_NODE
             value: "true"
+#          - name: SMD_MODE
 #          - name: STRATO_GS_MODE
           - name: stratoHost
             value: strato:3000
@@ -307,7 +314,7 @@ items:
           - name: stratoHost
             value: strato:3000
           - name: zookeeper_conn
-            value: kafka
+            value: zookeeper
           image: 172.30.1.1:5000/strato/blockapps-strato-cirrus:latest
           name: cirrus
           resources: {}
@@ -387,7 +394,7 @@ items:
           - name: statsSuffix
           - name: useSyncMode
           - name: zkHost
-            value: kafka
+            value: zookeeper
           image: 172.30.1.1:5000/strato/blockapps-strato-strato:latest
           name: strato
           ports:
@@ -535,9 +542,14 @@ items:
         - env:
           - name: authBasic
             value: "true"
+#          - name: azureAD
+#          - name: azureADClientID
+#          - name: azureADTenantID
 #          - name: blockTime
+#          - name: SMD_MODE
 #          - name: ssl
 #          - name: sslCertFileType
+#          - name: STRATO_GS_MODE
           - name: uiPassword
             value: __ui_password__
           image: 172.30.1.1:5000/strato/blockapps-strato-nginx:latest
@@ -613,6 +625,48 @@ items:
   kind: DeploymentConfig
   metadata:
     creationTimestamp: null
+    name: zookeeper
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: zookeeper
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: zookeeper
+      spec:
+        containers:
+        - image: 172.30.1.1:5000/strato/blockapps-strato-zookeeper:latest
+          name: zookeeper
+          ports:
+          - containerPort: 2181
+          resources: {}
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - zookeeper
+        from:
+          kind: ImageStreamTag
+          name: blockapps-strato-zookeeper:latest
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
     name: kafka
   spec:
     replicas: 1
@@ -628,17 +682,34 @@ items:
       spec:
         containers:
         - env:
-          - name: ADVERTISED_HOST
-            value: "kafka"
-          - name: ADVERTISED_PORT
+          - name: KAFKA_PORT # Hack for kafka on kubernetes, see https://github.com/wurstmeister/kafka-docker/issues/122
+            value: "9092"
+          - name: KAFKA_ADVERTISED_HOST_NAME
+            value: kafka
+          - name: KAFKA_ADVERTISED_PORT
+            value: "9092"
+          - name: KAFKA_ZOOKEEPER_CONNECT
+            value: zookeeper:2181
+          - name: KAFKA_DELETE_TOPIC_ENABLE
+            value: "true"
+          - name: KAFKA_LOG_CLEANER_ENABLE
+            value: "false"
+          - name: KAFKA_LOG_RETENTION_HOURS
+            value: "2147483647"
+          - name: KAFKA_OFFSET_METADATA_MAX_BYTES
+            value: "1048576"
+          - name: KAFKA_MAX_REQUEST_SIZE
+            value: "33554432"
+          - name: KAFKA_MESSAGE_MAX_BYTES
+            value: "33554432"
+          - name: KAFKA_PORT
             value: "9092"
           image: 172.30.1.1:5000/strato/blockapps-strato-kafka:latest
-          # KAFKA ON OPENSHIFT ADVERTISED_HOST FIX + STRATO config for Kafka
-          command: [sh, -c, echo '127.0.0.1 kafka' >> /etc/hosts && printf "\noffset.metadata.max.bytes=1048576\nmax.request.size=33554432\nmessage.max.bytes=33554432\n" >> opt/kafka_2.11-0.10.1.0/config/server.properties && supervisord -n]
+          # KAFKA ON OPENSHIFT ADVERTISED_HOST FIX
+          command: [sh, -c, echo '127.0.0.1 kafka' >> /etc/hosts && start-kafka.sh]
           name: kafka
           ports:
           - containerPort: 9092
-          - containerPort: 2181
           resources: {}
     test: false
     triggers:
@@ -840,15 +911,27 @@ items:
   kind: Service
   metadata:
     creationTimestamp: null
+    name: zookeeper
+  spec:
+    ports:
+    - name: 2181-tcp
+      port: 2181
+      targetPort: 2181
+    selector:
+      deploymentconfig: zookeeper
+  status:
+    loadBalancer: {}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
     name: kafka
   spec:
     ports:
     - name: 9092-tcp
       port: 9092
       targetPort: 9092
-    - name: 2181-tcp
-      port: 2181
-      targetPort: 2181
     selector:
       deploymentconfig: kafka
   status:

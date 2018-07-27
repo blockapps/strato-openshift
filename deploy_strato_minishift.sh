@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-STRATO_VERSION=3.0.0-SMDv0.4
+STRATO_VERSION=3.1.2
 
 set -e
 set -x
@@ -47,7 +47,8 @@ docker pull registry-aws.blockapps.net:5000/blockapps-repo/nginx:${STRATO_VERSIO
 docker pull registry-aws.blockapps.net:5000/blockapps-repo/docs:${STRATO_VERSION}
 docker pull redis:3.2
 docker pull postgres:9.6
-docker pull spotify/kafka:latest
+sudo docker pull wurstmeister/zookeeper:3.4.6
+sudo docker pull wurstmeister/kafka:1.1.0
 
 # SETUP IMAGES
 export ocr_ip="$(oc get svc -n default | grep docker-registry | awk '{print $2}'):5000"
@@ -62,19 +63,26 @@ do
   docker tag $image ${ocr_ip}/${PROJECT_NAME}/blockapps-strato-${image_name}:latest
 done
 
-for image in redis:3.2 postgres:9.6 spotify/kafka:latest
+for image in redis:3.2 postgres:9.6 wurstmeister/zookeeper:3.4.6 wurstmeister/kafka:1.1.0
 do
  echo tag image: $image
  image_name=${image%%:*} # extracting name from name:tag
 
- if [ "$image" = "spotify/kafka:latest" ]; then
-   image_name="kafka"
+  if [ "$image" = "wurstmeister/zookeeper:3.4.6" ]; then
+   image_name="zookeeper"
+   echo $image_name
  fi
+
+ if [ "$image" = "wurstmeister/kafka:1.1.0" ]; then
+   image_name="kafka"
+   echo $image_name
+ fi
+
   docker tag $image ${ocr_ip}/${PROJECT_NAME}/blockapps-strato-$image_name:latest
 done
 
 #push images
-for image in postgres redis kafka smd apex dappstore bloc docs cirrus strato nginx postgrest
+for image in postgres redis zookeeper kafka smd apex dappstore bloc docs cirrus strato nginx postgrest
 do
   echo push image: $image
   docker push ${ocr_ip}/${PROJECT_NAME}/blockapps-strato-$image:latest
