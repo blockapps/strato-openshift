@@ -5,7 +5,7 @@ These commands basically get the images from the BlockApps repo and then push th
 ## Openshift cluster
 
 #### Domain name prerequsites
-When running on custom domain name (not using `nip.io`) - add the `*.<subdomain>` record in your DNS settings (e.g. `*.openshift` in my `example.com` domain settings)
+When running on custom domain name (not using `nip.io`) - add the `*.<subdomain>` record in your DNS settings (e.g. `*.openshift` in my `example.com` domain settings) to point to "OPENSHIFT INFRA LOAD BALANCER" IP address
 
 #### Deploy STRATO 
 
