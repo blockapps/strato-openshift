@@ -47,8 +47,8 @@ docker pull registry-aws.blockapps.net:5000/blockapps-repo/nginx:${STRATO_VERSIO
 docker pull registry-aws.blockapps.net:5000/blockapps-repo/docs:${STRATO_VERSION}
 docker pull redis:3.2
 docker pull postgres:9.6
-sudo docker pull wurstmeister/zookeeper:3.4.6
-sudo docker pull wurstmeister/kafka:1.1.0
+docker pull wurstmeister/zookeeper:3.4.6
+docker pull wurstmeister/kafka:1.1.0
 
 # SETUP IMAGES
 export ocr_ip="$(oc get svc -n default | grep docker-registry | awk '{print $2}'):5000"
