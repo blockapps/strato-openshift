@@ -3,7 +3,6 @@
 STRATO_VERSION=3.1.2
 
 set -e
-set -x
 
 # SET PERMISSIONS FOR 'developer' USER
 oc login -u system:admin

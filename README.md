@@ -31,7 +31,13 @@ When running on custom domain name (not using `nip.io`) - add the `*.<subdomain>
  ./deploy_strato_minishift.sh
  ```
  
+Minishift console: `https://<Minishift_VM_IP_address>:8443`
+
 Minishift dev user credentials: `developer/developer`
+
+To get your STRATO node address:
+
+- Choose your STRATO project -> Overview -> Expand the "nginx" deployment -> Check the route (should look like: `http://node-<project_name>.<Minishift_VM_IP_address>.nip.io`)
 
 ## Dashboard
 Visit the nginx hostname in your browser to open STRATO Dashboard (in Openshift Console select `STRATO` project, then Applications > Routes).
