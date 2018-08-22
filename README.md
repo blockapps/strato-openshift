@@ -9,7 +9,7 @@ When running on custom domain name (not using `nip.io`) - add the `*.<subdomain>
 
 #### Deploy STRATO 
 
-1. ssh to master node.
+1. ssh to OpenShift master node.
 
 2. clone this repo and from the repo directory run:
  ```
