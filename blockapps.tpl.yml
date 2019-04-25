@@ -1,4 +1,4 @@
-# STRATO v3.1.2
+# STRATO v4.4.0-rc0
 apiVersion: v1
 items:
 ##### DEPLOYMENTS #####
@@ -21,25 +21,17 @@ items:
       spec:
         containers:
         - env:
-          - name: APEX_URL
-            value: http://node-__project_name__.__hostname__/apex-api
-          - name: BLOC_URL
-            value: http://node-__project_name__.__hostname__/bloc/v2.2
-          - name: BLOC_DOC_URL
-            value: http://node-__project_name__.__hostname__/docs/?url=/bloc/v2.2/swagger.json
-          - name: CIRRUS_URL
-            value: http://node-__project_name__.__hostname__/cirrus/search
+          - name: EXT_STORAGE_S3_BUCKET
+          - name: NODE_HOST
+            value: node-__project_name__.__hostname__
           - name: NODE_NAME
             value: node-__project_name__.__hostname__
+          - name: OAUTH_ENABLED
           - name: SINGLE_NODE
             value: "true"
-#          - name: SMD_MODE
-#          - name: ssl
-          - name: STRATO_DOC_URL
-            value: http://node-__project_name__.__hostname__/docs/?url=/strato-api/eth/v1.2/swagger.json
-#          - name: STRATO_GS_MODE
-          - name: STRATO_URL
-            value: http://node-__project_name__.__hostname__/strato-api/eth/v1.2
+          - name: SMD_MODE
+          - name: ssl
+          - name: STRATO_GS_MODE
           image: 172.30.1.1:5000/strato/blockapps-strato-smd:latest
           name: smd
           resources: {}
@@ -83,10 +75,12 @@ items:
         - env:
           - name: blocHost
             value: bloc:8000
-          - name: cirrusHost
-            value: cirrus:3333
+          - name: EXT_STORAGE_S3_BUCKET
+          - name: EXT_STORAGE_S3_ACCESS_KEY_ID
+          - name: EXT_STORAGE_S3_SECRET_ACCESS_KEY
           - name: NODE_HOST
             value: node-__project_name__.__hostname__
+          - name: OAUTH_ENABLED
           - name: postgres_host
             value: postgres
           - name: postgres_password
@@ -95,13 +89,17 @@ items:
             value: "5432"
           - name: postgres_user
             value: postgres
-#          - name: PROD_DEV_MODE
+          - name: postgrestHost
+            value: postgrest:3001
+          - name: PROD_DEV_MODE
           - name: SINGLE_NODE
             value: "true"
-#          - name: SMD_MODE
-#          - name: STRATO_GS_MODE
+          - name: SMD_MODE
+          - name: STRATO_GS_MODE
           - name: stratoHost
             value: strato:3000
+          - name: vaultWrapperHost
+            value: vault-wrapper:8000
           image: 172.30.1.1:5000/strato/blockapps-strato-apex:latest
           name: apex
           resources: {}
@@ -143,12 +141,9 @@ items:
       spec:
         containers:
         - env:
-          - name: BLOC_URL
-            value: http://node-__project_name__.__hostname__/bloc/v2.2
-          - name: CIRRUS_URL
-            value: http://node-__project_name__.__hostname__/cirrus/search
-          - name: STRATO_URL
-            value: http://node-__project_name__.__hostname__/strato-api/eth/v1.2
+          - name: NODE_HOST
+            value: node-__project_name__.__hostname__
+#          - name: ssl
           image: 172.30.1.1:5000/strato/blockapps-strato-dappstore:latest
           name: dappstore
           resources: {}
@@ -190,21 +185,32 @@ items:
       spec:
         containers:
         - env:
-          - name: cirrusHost
-            value: cirrus:3333
-#          - name: logLevel
+          - name: BLOC_DEBUG
+          - name: kafkaHost
+            value: kafka
+          - name: kafkaPort
+            value: "9092"
           - name: postgres_host
             value: postgres
           - name: postgres_password
             value: api
           - name: postgres_port
             value: "5432"
+          - name: postgres_slipstream_db
+            value: cirrus
           - name: postgres_user
             value: postgres
-          - name: ssl
-            value: "false"
+          - name: PROCESS_MONITORING
+          - name: SLIPSTREAM_OPTIONAL
+          - name: SLIPSTREAM_DEBUG
+          - name: SMD_MODE
+#          - name: stateDiffTopic
           - name: stratoHost
             value: strato:3000
+          - name: vaultWrapperHost
+            value: vault-wrapper:8000
+          - name: zookeeper_conn
+            value: zookeeper
           image: 172.30.1.1:5000/strato/blockapps-strato-bloc:latest
           name: bloc
           ports:
@@ -279,25 +285,21 @@ items:
   kind: DeploymentConfig
   metadata:
     creationTimestamp: null
-    name: cirrus
+    name: vault-wrapper
   spec:
     replicas: 1
     selector:
-      deploymentconfig: cirrus
+      deploymentconfig: vault-wrapper
     strategy:
       resources: {}
     template:
       metadata:
         creationTimestamp: null
         labels:
-          deploymentconfig: cirrus
+          deploymentconfig: vault-wrapper
       spec:
         containers:
         - env:
-          - name: blocHost
-            value: bloc:8000
-          - name: postgres_db
-            value: cirrus
           - name: postgres_host
             value: postgres
           - name: postgres_password
@@ -306,17 +308,11 @@ items:
             value: "5432"
           - name: postgres_user
             value: postgres
-          - name: postgrestHost
-            value: postgrest:3001
-          - name: SINGLE_NODE
-            value: "true"
-#          - name: stateDiffTopic
-          - name: stratoHost
-            value: strato:3000
-          - name: zookeeper_conn
-            value: zookeeper
-          image: 172.30.1.1:5000/strato/blockapps-strato-cirrus:latest
-          name: cirrus
+          - name: postgres_vault_wrapper_db
+            value: oauth
+          - name: VAULTWRAPPER_DEBUG
+          image: 172.30.1.1:5000/strato/blockapps-strato-vault-wrapper:latest
+          name: vault-wrapper
           resources: {}
     test: false
     triggers:
@@ -324,10 +320,10 @@ items:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - cirrus
+        - vault-wrapper
         from:
           kind: ImageStreamTag
-          name: blockapps-strato-cirrus:latest
+          name: blockapps-strato-vault-wrapper:latest
       type: ImageChange
   status:
     availableReplicas: 0
@@ -358,8 +354,15 @@ items:
         - env:
           - name: addBootnodes
           - name: backupblocks
+          - name: blockstanbul
+          - name: blockstanbulAdmins
+          - name: blockstanbulBlockPeriodMs
+          - name: blockstanbulPrivateKey
+          - name: blockstanbulRoundPeriodS
+          - name: blockstanbulSkipCheck
           - name: blockTime
           - name: bootnode
+          - name: connectionTimeout
           - name: debugFail
           - name: evmDebugMode
           - name: evmTraceMode
@@ -368,6 +371,9 @@ items:
           - name: kafkaHost
             value: kafka
           - name: lazyBlocks
+          - name: maxConn
+          - name: maxReturnedHeaders
+          - name: maxTxsPerBlock
           - name: minBlockDifficulty
           - name: mineBlocks
             value: "true"
@@ -381,18 +387,19 @@ items:
             value: api
           - name: postgres_user
             value: postgres
+          - name: PROCESS_MONITORING
           - name: redisBDBNumber
           - name: redisHost
             value: redis
           - name: redisPort
             value: "6379"
-          - name: statsEnable
-          - name: statsFlush
-          - name: statsHost
-          - name: statsPort
-          - name: statsPrefix
-          - name: statsSuffix
+          - name: seqDebugMode
+          - name: seqMaxEventsPerIter
+          - name: seqMaxUsPerIter
+          - name: seqRTSOPTs
           - name: useSyncMode
+          - name: validators
+          - name: vmRunnerRTSOPTs
           - name: zkHost
             value: zookeeper
           image: 172.30.1.1:5000/strato/blockapps-strato-strato:latest
@@ -439,6 +446,8 @@ items:
       spec:
         containers:
         - env:
+          - name: blocHost
+            value: bloc:8000
           - name: PG_ENV_POSTGRES_DB
             value: cirrus
           - name: PG_ENV_POSTGRES_HOST
@@ -492,15 +501,12 @@ items:
       spec:
         containers:
         - env:
-          - name: POSTGRES_DB
-            value: cirrus
           - name: POSTGRES_PASSWORD
             value: api
           image: 172.30.1.1:5000/strato/blockapps-strato-postgres:latest
           name: postgres
           ports:
           - containerPort: 5432
-          resources: {}
           resources: {}
     test: false
     triggers:
@@ -542,20 +548,29 @@ items:
         - env:
           - name: authBasic
             value: "true"
-#          - name: azureAD
-#          - name: azureADClientID
-#          - name: azureADTenantID
-#          - name: blockTime
-#          - name: SMD_MODE
-#          - name: ssl
-#          - name: sslCertFileType
-#          - name: STRATO_GS_MODE
+          - name: blockstanbul
+          - name: blockTime
+          - name: OAUTH_CLIENT_ID
+          - name: OAUTH_CLIENT_SECRET
+          - name: OAUTH_DISCOVERY_URL
+          - name: OAUTH_ENABLED
+          - name: OAUTH_JWT_USERNAME_PROPERTY
+          - name: OAUTH_JWT_VALIDATION_ENABLED
+            value: "false"
+          - name: OAUTH_JWT_VALIDATION_DISCOVERY_URL
+          - name: OAUTH_STRATO42_FALLBACK
+          - name: SMD_MODE
+          - name: SERVE_LOGS
+          - name: ssl
+          - name: sslCertFileType
+          - name: STRATO_GS_MODE
           - name: uiPassword
             value: __ui_password__
           image: 172.30.1.1:5000/strato/blockapps-strato-nginx:latest
           name: nginx
           ports:
           - containerPort: 80
+#          - containerPort: 443
           resources: {}
     test: false
     triggers:
@@ -597,7 +612,7 @@ items:
         - env:
           - name: API_URL
             value: /strato-api/eth/v1.2/swagger.json
-          image: 172.30.1.1:5000/strato/blockapps-strato-docs:latest
+          image: 172.30.1.1:5000/strato/blockapps-strato-swagger-ui:latest
           name: docs
           ports:
           - containerPort: 8080
@@ -611,7 +626,7 @@ items:
         - docs
         from:
           kind: ImageStreamTag
-          name: blockapps-strato-docs:latest
+          name: blockapps-strato-swagger-ui:latest
       type: ImageChange
   status:
     availableReplicas: 0
@@ -702,8 +717,6 @@ items:
             value: "33554432"
           - name: KAFKA_MESSAGE_MAX_BYTES
             value: "33554432"
-          - name: KAFKA_PORT
-            value: "9092"
           image: 172.30.1.1:5000/strato/blockapps-strato-kafka:latest
           # KAFKA ON OPENSHIFT ADVERTISED_HOST FIX
           command: [sh, -c, echo '127.0.0.1 kafka' >> /etc/hosts && start-kafka.sh]
@@ -722,6 +735,48 @@ items:
           kind: ImageStreamTag
           name: blockapps-strato-kafka:latest
       type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: prometheus
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: prometheus
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: prometheus
+      spec:
+        containers:
+        - image: 172.30.1.1:5000/strato/blockapps-strato-prometheus:latest
+          name: prometheus
+          ports:
+          - containerPort: 9090
+          resources: {}
+    test: false
+    triggers:
+      - type: ConfigChange
+      - imageChangeParams:
+          automatic: true
+          containerNames:
+            - prometheus
+          from:
+            kind: ImageStreamTag
+            name: blockapps-strato-prometheus:latest
+        type: ImageChange
   status:
     availableReplicas: 0
     latestVersion: 0
@@ -814,14 +869,14 @@ items:
   kind: Service
   metadata:
     creationTimestamp: null
-    name: cirrus
+    name: vault-wrapper
   spec:
     ports:
-    - name: 3333-tcp
-      port: 3333
-      targetPort: 3333
+    - name: 8000-tcp
+      port: 8000
+      targetPort: 8000
     selector:
-      deploymentconfig: cirrus
+      deploymentconfig: vault-wrapper
   status:
     loadBalancer: {}
 
@@ -838,7 +893,7 @@ items:
     - name: 30303-tcp
       port: 30303
       targetPort: 30303
-#    #TODO: CHECK HOW TO MAP UDP PORT (FOR MULTINODE)
+#    #TODO: MAP UDP PORT (FOR MULTINODE)
 #    - name: 30303-udp
 #      port: 30303
 #      targetPort: 30303
@@ -934,6 +989,21 @@ items:
       targetPort: 9092
     selector:
       deploymentconfig: kafka
+  status:
+    loadBalancer: {}
+    
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    name: prometheus
+  spec:
+    ports:
+      - name: 9090-tcp
+        port: 9090
+        targetPort: 9090
+    selector:
+      deploymentconfig: prometheus
   status:
     loadBalancer: {}
 

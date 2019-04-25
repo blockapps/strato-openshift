@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 
+
+# TODO: test on Openshift
+
 # Openshift 3.9 compatible
 
-STRATO_VERSION=3.1.2
+STRATO_VERSION=4.3
 
 set -e
 
@@ -39,11 +42,12 @@ sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/smd:${STRATO_VER
 sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/apex:${STRATO_VERSION}
 sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/dappstore:${STRATO_VERSION}
 sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/bloc:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/cirrus:${STRATO_VERSION}
+sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/vault-wrapper:${STRATO_VERSION}
 sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/strato:${STRATO_VERSION}
 sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/postgrest:${STRATO_VERSION}
 sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/nginx:${STRATO_VERSION}
-sudo docker pull registry-aws.blockapps.net:5000/blockapps-repo/docs:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/prometheus:${STRATO_VERSION}
+sudo docker pull swaggerapi/swagger-ui:v3.22.1
 sudo docker pull redis:3.2
 sudo docker pull postgres:9.6
 sudo docker pull wurstmeister/zookeeper:3.4.6
@@ -62,11 +66,16 @@ do
   sudo docker tag $image ${docker_registry_host}/${PROJECT_NAME}/blockapps-strato-${image_name}:latest
 done
 
-for image in redis:3.2 postgres:9.6 wurstmeister/zookeeper:3.4.6 wurstmeister/kafka:1.1.0
+for image in swaggerapi/swagger-ui:v3.22.1 redis:3.2 postgres:9.6 wurstmeister/zookeeper:3.4.6 wurstmeister/kafka:1.1.0
 do
  echo tag image: $image
  image_name=${image%%:*} # extracting name from name:tag
 
+ if [ "$image" = "swaggerapi/swagger-ui:v3.22.1" ]; then
+   image_name="swagger-ui"
+   echo $image_name
+ fi
+  
  if [ "$image" = "wurstmeister/zookeeper:3.4.6" ]; then
    image_name="zookeeper"
    echo $image_name
@@ -81,7 +90,7 @@ do
 done
 
 #push images
-for image in postgres redis zookeeper kafka smd apex dappstore bloc docs cirrus strato nginx postgrest
+for image in postgres redis zookeeper kafka smd apex dappstore bloc swagger-ui vault-wrapper strato postgrest nginx prometheus
 do
   echo push image: $image
   sudo docker push ${docker_registry_host}/${PROJECT_NAME}/blockapps-strato-$image:latest

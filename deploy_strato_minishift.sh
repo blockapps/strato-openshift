@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-STRATO_VERSION=3.1.2
+# minishift v1.33.0+ba29431 compatible (recent at Apr 23rd 2019)
+
+STRATO_VERSION=4.3.0
 
 set -e
 
@@ -10,11 +12,20 @@ oc adm policy add-cluster-role-to-user cluster-admin developer
 
 username=developer
 
-read -p "Enter Openshift project name for the deployment (e.g. \"strato1\"): " PROJECT_NAME
-
-read -p "Enter minishift VM IP (e.g. 192.168.64.1):  " PUBLIC_IP
-
+PROJECT_NAME=${PROJECT_NAME:-strato}
+PUBLIC_IP=$(minishift ip)
 UI_PASSWORD=admin
+
+if $(oc get project ${PROJECT_NAME} 2>&1 > /dev/null); then
+  read -p "project \"${PROJECT_NAME}\" exists, delete? (y/n): " REMOVE
+  if [[ ${REMOVE} = "y" ]]; then
+    echo "Deleting the project - this may take up to few minutes..."
+    oc delete project ${PROJECT_NAME}
+  else
+    echo "Project ${PROJECT_NAME} exists, please delete ('oc delete project ${PROJECT_NAME}') and re-run this script"
+    exit 1
+  fi
+fi
 
 cp blockapps.tpl.yml blockapps.yml
 sed -i -e 's/__project_name__/'"${PROJECT_NAME}"'/g' blockapps.yml
@@ -39,18 +50,19 @@ docker pull registry-aws.blockapps.net:5000/blockapps-repo/smd:${STRATO_VERSION}
 docker pull registry-aws.blockapps.net:5000/blockapps-repo/apex:${STRATO_VERSION}
 docker pull registry-aws.blockapps.net:5000/blockapps-repo/dappstore:${STRATO_VERSION}
 docker pull registry-aws.blockapps.net:5000/blockapps-repo/bloc:${STRATO_VERSION}
-docker pull registry-aws.blockapps.net:5000/blockapps-repo/cirrus:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/vault-wrapper:${STRATO_VERSION}
 docker pull registry-aws.blockapps.net:5000/blockapps-repo/strato:${STRATO_VERSION}
 docker pull registry-aws.blockapps.net:5000/blockapps-repo/postgrest:${STRATO_VERSION}
 docker pull registry-aws.blockapps.net:5000/blockapps-repo/nginx:${STRATO_VERSION}
-docker pull registry-aws.blockapps.net:5000/blockapps-repo/docs:${STRATO_VERSION}
+docker pull registry-aws.blockapps.net:5000/blockapps-repo/prometheus:${STRATO_VERSION}
+docker pull swaggerapi/swagger-ui:v3.22.1
 docker pull redis:3.2
 docker pull postgres:9.6
 docker pull wurstmeister/zookeeper:3.4.6
 docker pull wurstmeister/kafka:1.1.0
 
 # SETUP IMAGES
-export ocr_ip="$(oc get svc -n default | grep docker-registry | awk '{print $2}'):5000"
+export ocr_ip=$(minishift openshift registry)
 docker login -u $(oc whoami) -p $(oc whoami -t) ${ocr_ip}
 
 ## tag images
@@ -62,12 +74,17 @@ do
   docker tag $image ${ocr_ip}/${PROJECT_NAME}/blockapps-strato-${image_name}:latest
 done
 
-for image in redis:3.2 postgres:9.6 wurstmeister/zookeeper:3.4.6 wurstmeister/kafka:1.1.0
+for image in swaggerapi/swagger-ui:v3.22.1 redis:3.2 postgres:9.6 wurstmeister/zookeeper:3.4.6 wurstmeister/kafka:1.1.0
 do
  echo tag image: $image
  image_name=${image%%:*} # extracting name from name:tag
 
-  if [ "$image" = "wurstmeister/zookeeper:3.4.6" ]; then
+ if [ "$image" = "swaggerapi/swagger-ui:v3.22.1" ]; then
+   image_name="swagger-ui"
+   echo $image_name
+ fi
+
+ if [ "$image" = "wurstmeister/zookeeper:3.4.6" ]; then
    image_name="zookeeper"
    echo $image_name
  fi
@@ -81,11 +98,11 @@ do
 done
 
 #push images
-for image in postgres redis zookeeper kafka smd apex dappstore bloc docs cirrus strato nginx postgrest
+for image in postgres redis zookeeper kafka smd apex dappstore bloc swagger-ui vault-wrapper strato postgrest nginx prometheus
 do
   echo push image: $image
   docker push ${ocr_ip}/${PROJECT_NAME}/blockapps-strato-$image:latest
 done
 
 #STARTUP
-oc create -f blockapps.yml
+#oc create -f blockapps.yml
