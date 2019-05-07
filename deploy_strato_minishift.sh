@@ -6,7 +6,15 @@ STRATO_VERSION=4.3.0
 
 set -e
 
-# SET PERMISSIONS FOR 'developer' USER
+if ! $(oc > /dev/null 2>&1); then
+  echo "minishift environment is not set up in current shell. Setting up..."
+  set -x
+  eval $(minishift oc-env)
+  eval $(minishift docker-env)
+  set +x
+fi
+
+# SET PERMISSIONS FOR 'developer' USER to push images to openshift's docker registry
 oc login -u system:admin
 oc adm policy add-cluster-role-to-user cluster-admin developer
 
@@ -14,7 +22,6 @@ username=developer
 
 PROJECT_NAME=${PROJECT_NAME:-strato}
 PUBLIC_IP=$(minishift ip)
-UI_PASSWORD=admin
 
 if $(oc get project ${PROJECT_NAME} 2>&1 > /dev/null); then
   read -p "project \"${PROJECT_NAME}\" exists, delete? (y/n): " REMOVE
@@ -28,6 +35,31 @@ if $(oc get project ${PROJECT_NAME} 2>&1 > /dev/null); then
 fi
 
 cp blockapps.tpl.yml blockapps.yml
+
+read -p "Create template with OAuth? (y/n): " OAUTH_YN
+if [[ ${OAUTH_YN} = "y" ]]; then
+  read -p "Enter OpenID Connect discovery url: " OAUTH_DISCOVERY_URL
+  read -p "Run STRATO v4.2-compatible OAuth? (y/n)" OAUTH_STRATO42_FALLBACK
+  if [[ ${OAUTH_STRATO42_FALLBACK} = "y" ]]; then
+    sed -i -e 's/__OAUTH_JWT_VALIDATION_ENABLED__/"true"/g' blockapps.yml
+    sed -i -e 's|__OAUTH_JWT_VALIDATION_DISCOVERY_URL__|'"${OAUTH_DISCOVERY_URL}"'|g' blockapps.yml
+    sed -i -e 's/__OAUTH_STRATO42_FALLBACK__/"true"/g' blockapps.yml
+  else
+    read -p "Enter OAuth client id: " OAUTH_CLIENT_ID
+    read -p "Enter OAuth client secret: " OAUTH_CLIENT_SECRET
+    sed -i -e 's/__OAUTH_ENABLED__/"true"/g' blockapps.yml
+    sed -i -e 's/__OAUTH_DISCOVERY_URL__/'"${OAUTH_DISCOVERY_URL}"'/g' blockapps.yml
+    sed -i -e 's/__OAUTH_CLIENT_ID__/'"${OAUTH_CLIENT_ID}"'/g' blockapps.yml
+    sed -i -e 's/__OAUTH_CLIENT_SECRET__/'"${OAUTH_CLIENT_SECRET}"'/g' blockapps.yml
+  fi
+fi
+if [[ ${OAUTH_STRATO42_FALLBACK} != "n" ]]; then
+  read -p "Enter the new UI password for admin user (basic auth): " UI_PASSWORD
+  sed -i -e 's/__authBasic__/"true"/g' blockapps.yml
+else
+  sed -i -e 's/__authBasic__/"false"/g' blockapps.yml
+fi
+
 sed -i -e 's/__project_name__/'"${PROJECT_NAME}"'/g' blockapps.yml
 # using nip.io to enable sub-domain wildcards for IP (like "*.111.222.123.123"):
 sed -i -e 's/__hostname__/'"${PUBLIC_IP}"'.nip.io/g' blockapps.yml
@@ -105,4 +137,4 @@ do
 done
 
 #STARTUP
-#oc create -f blockapps.yml
+oc create -f blockapps.yml

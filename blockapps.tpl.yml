@@ -27,6 +27,7 @@ items:
           - name: NODE_NAME
             value: node-__project_name__.__hostname__
           - name: OAUTH_ENABLED
+            value: __OAUTH_ENABLED__
           - name: SINGLE_NODE
             value: "true"
           - name: SMD_MODE
@@ -81,6 +82,7 @@ items:
           - name: NODE_HOST
             value: node-__project_name__.__hostname__
           - name: OAUTH_ENABLED
+            value: __OAUTH_ENABLED__
           - name: postgres_host
             value: postgres
           - name: postgres_password
@@ -547,18 +549,24 @@ items:
         containers:
         - env:
           - name: authBasic
-            value: "true"
+            value: __authBasic__
           - name: blockstanbul
           - name: blockTime
           - name: OAUTH_CLIENT_ID
+            value: __OAUTH_CLIENT_ID__
           - name: OAUTH_CLIENT_SECRET
+            value: __OAUTH_CLIENT_SECRET__
           - name: OAUTH_DISCOVERY_URL
+            value: __OAUTH_DISCOVERY_URL__
           - name: OAUTH_ENABLED
+            value: __OAUTH_ENABLED__
           - name: OAUTH_JWT_USERNAME_PROPERTY
           - name: OAUTH_JWT_VALIDATION_ENABLED
-            value: "false"
+            value: __OAUTH_JWT_VALIDATION_ENABLED__
           - name: OAUTH_JWT_VALIDATION_DISCOVERY_URL
+            value: __OAUTH_JWT_VALIDATION_DISCOVERY_URL__
           - name: OAUTH_STRATO42_FALLBACK
+            value: __OAUTH_STRATO42_FALLBACK__
           - name: SMD_MODE
           - name: SERVE_LOGS
           - name: ssl
